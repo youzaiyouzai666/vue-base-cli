@@ -1,0 +1,134 @@
+#!/usr/bin/env node
+
+//从仓库下载并提取git存储库（GitHub，GitLab，Bitbucket）。
+var download = require('download-git-repo')
+//主要用于创建子命令和切割命令行参数并执行
+var program = require('commander')
+//检查文件是否存在
+var exists = require('fs').existsSync
+//路径模块提供用于处理文件和目录路径的实用程序。 比如路径分割，文件路径格式化，json格式化等
+var path = require('path')
+//漂亮的loding
+var ora = require('ora')
+//获取用户主目录的路径
+var home = require('user-home')
+//绝对路径转换为相对路径
+var tildify = require('tildify')
+//美化
+var chalk = require('chalk')
+//常用的交互式命令行用户界面的集合。表现是控制台输出提问
+var inquirer = require('inquirer')
+var rm = require('rimraf').sync
+
+const generate = require('../lib/generate')
+
+console.log('=================init=======');
+
+/**
+ * Usage. 提示用法
+ */
+program
+  .usage('<template-name> [project-name]')
+  .option('-c, --clone', 'use git clone')
+  .option('--offline', 'use cached template')
+
+/**
+* Help. 帮助
+*/
+program.on('--help', () => {
+  console.log('  Examples:')
+  console.log()
+  console.log(chalk.gray('    # create a new project with an official template'))
+  console.log('    $ vue init webpack my-project')
+  console.log()
+  console.log(chalk.gray('    # create a new project straight from a github template'))
+  console.log('    $ vue init username/repo my-project')
+  console.log()
+})
+
+/**
+ * Help. 没有产生处理
+ */
+function help() {
+  program.parse(process.argv)
+  if (program.args.length < 1) return program.help()
+}
+help()
+
+
+/**
+ * Settings. 处理参数
+ */
+
+let template = program.args[0]  //第一个参数 template
+const hasSlash = template.indexOf('/') > -1
+const rawName = program.args[1]  //第二个参数 projectName
+const inPlace = !rawName || rawName === '.'
+const name = inPlace ? path.relative('../', process.cwd()) : rawName //path.relative（）方法根据当前工作目录返回相对路径。如果从每个解析到相同的路径（在每个路径上调用path.resolve（）之后），返回零长度的字符串。 
+const to = path.resolve(rawName || '.')//返回绝对地址
+const clone = program.clone || false
+
+const tmp = path.join(home, '.vue-templates', template.replace(/[\/:]/g, '-'))
+if (program.offline) {
+  console.log(`> Use cached template at ${chalk.yellow(tildify(tmp))}`)
+  template = tmp
+}
+
+/**
+ * Padding.
+ */
+
+console.log()
+process.on('exit', () => {
+  console.log()
+})
+
+// if (inPlace || exists(to)) {
+//   inquirer.prompt([{
+//     type: 'confirm',
+//     message: inPlace
+//       ? 'Generate project in current directory?'
+//       : 'Target directory exists. Continue?',
+//     name: 'ok'
+//   }]).then(answers => {
+//     if (answers.ok) {
+//       run()
+//     }
+//   }).catch(logger.fatal)
+// } else {
+//   run() //指向
+// }
+run()
+/**
+ * 只处理下载在线 模板
+ */
+function run(){
+  const officialTemplate = 'vuejs-templates/' + template //拼模板路径
+  console.log('officialTemplate',officialTemplate);
+    ownloadAndGenerate(officialTemplate)
+
+
+}
+
+/**
+ * 从 github下载模板
+ * @param template 
+ */
+function ownloadAndGenerate(template){
+  const spinner = ora('downloading template')
+  spinner.start()
+  console.log(template,tmp);
+  download(template, tmp, { clone }, err => {
+    spinner.stop()
+    if (err) {
+      logger.fatal('Failed to download repo ' + template + ': ' + err.message.trim())
+    }else{
+      console.log('success');
+      generate(name, tmp, to, err => {
+        if (err) console.log(err)
+        console.log()
+        console.success('Generated "%s".', name)
+      })
+    }
+  })
+}
