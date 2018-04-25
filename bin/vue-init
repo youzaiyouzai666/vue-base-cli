@@ -22,8 +22,6 @@ var rm = require('rimraf').sync
 
 const generate = require('../lib/generate')
 
-console.log('=================init=======');
-
 /**
  * Usage. 提示用法
  */
@@ -83,31 +81,13 @@ process.on('exit', () => {
   console.log()
 })
 
-// if (inPlace || exists(to)) {
-//   inquirer.prompt([{
-//     type: 'confirm',
-//     message: inPlace
-//       ? 'Generate project in current directory?'
-//       : 'Target directory exists. Continue?',
-//     name: 'ok'
-//   }]).then(answers => {
-//     if (answers.ok) {
-//       run()
-//     }
-//   }).catch(logger.fatal)
-// } else {
-//   run() //指向
-// }
 run()
 /**
  * 只处理下载在线 模板
  */
 function run(){
   const officialTemplate = 'vuejs-templates/' + template //拼模板路径
-  console.log('officialTemplate',officialTemplate);
     ownloadAndGenerate(officialTemplate)
-
-
 }
 
 /**
@@ -117,11 +97,10 @@ function run(){
 function ownloadAndGenerate(template){
   const spinner = ora('downloading template')
   spinner.start()
-  console.log(template,tmp);
   download(template, tmp, { clone }, err => {
     spinner.stop()
     if (err) {
-      logger.fatal('Failed to download repo ' + template + ': ' + err.message.trim())
+      console.error('Failed to download repo ' + template + ': ' + err.message.trim())
     }else{
       console.log('success');
       generate(name, tmp, to, err => {
